@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>socket接口api的深度探究 | Hexo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="一、socket接口使用1.1 socket抽象层Linux内核net&#x2F;socket.c定义了一套socket的操作api。图1展示了socket层所处与TCP&#x2F;IP协议栈之上和应用层之下。 图1 socket层的位置 1.2 一些需要预先知道的内核操作apisocket层大量使用了这些内核操作api，完成协议栈的调用入口。在深度探究socket层实现之前，先来了解下这些内核api。  fget_">
+<meta property="og:type" content="article">
+<meta property="og:title" content="socket接口api的深度探究">
+<meta property="og:url" content="http://mariolu.xyz/2019/08/07/socket%E6%8E%A5%E5%8F%A3api%E7%9A%84%E6%B7%B1%E5%BA%A6%E6%8E%A2%E7%A9%B6/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="一、socket接口使用1.1 socket抽象层Linux内核net&#x2F;socket.c定义了一套socket的操作api。图1展示了socket层所处与TCP&#x2F;IP协议栈之上和应用层之下。 图1 socket层的位置 1.2 一些需要预先知道的内核操作apisocket层大量使用了这些内核操作api，完成协议栈的调用入口。在深度探究socket层实现之前，先来了解下这些内核api。  fget_">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://ask.qcloudimg.com/draft/1198598/ltkdnt65lr.png?imageView2/2/w/1620">
+<meta property="og:image" content="https://ask.qcloudimg.com/draft/1198598/1xsxjbqbj7.png?imageView2/2/w/1620">
+<meta property="og:image" content="https://ask.qcloudimg.com/draft/1198598/gatrbevlaf.png?imageView2/2/w/1620">
+<meta property="og:image" content="https://ask.qcloudimg.com/draft/1198598/apq2ohw62h.png?imageView2/2/w/1620">
+<meta property="og:image" content="https://ask.qcloudimg.com/draft/1198598/xidviiv9p2.png?imageView2/2/w/1620">
+<meta property="og:image" content="https://ask.qcloudimg.com/draft/1198598/n89um71tqk.png?imageView2/2/w/1620">
+<meta property="og:image" content="https://ask.qcloudimg.com/draft/1198598/qv21rkh195.png?imageView2/2/w/1620">
+<meta property="og:image" content="https://ask.qcloudimg.com/draft/1198598/h7fx6clcb5.png?imageView2/2/w/1620">
+<meta property="og:image" content="https://ask.qcloudimg.com/draft/1198598/jwz94ngzec.png?imageView2/2/w/1620">
+<meta property="og:image" content="https://ask.qcloudimg.com/draft/1198598/2rm1q619bt.png?imageView2/2/w/1620">
+<meta property="og:image" content="https://ask.qcloudimg.com/draft/1198598/oqt0dy00im.png?imageView2/2/w/1620">
+<meta property="og:image" content="https://ask.qcloudimg.com/draft/1198598/eofremt2zg.png?imageView2/2/w/1620">
+<meta property="og:image" content="https://ask.qcloudimg.com/draft/1198598/hvogscqgt5.png?imageView2/2/w/1620">
+<meta property="article:published_time" content="2019-08-07T07:28:09.000Z">
+<meta property="article:modified_time" content="2020-01-13T13:35:05.112Z">
+<meta property="article:author" content="Mario Lu">
+<meta property="article:tag" content="Full Stack">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://ask.qcloudimg.com/draft/1198598/ltkdnt65lr.png?imageView2/2/w/1620">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Hexo</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://mariolu.xyz"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-socket接口api的深度探究" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2019/08/07/socket%E6%8E%A5%E5%8F%A3api%E7%9A%84%E6%B7%B1%E5%BA%A6%E6%8E%A2%E7%A9%B6/" class="article-date">
+  <time datetime="2019-08-07T07:28:09.000Z" itemprop="datePublished">2019-08-07</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      socket接口api的深度探究
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="一、socket接口使用"><a href="#一、socket接口使用" class="headerlink" title="一、socket接口使用"></a>一、socket接口使用</h1><h2 id="1-1-socket抽象层"><a href="#1-1-socket抽象层" class="headerlink" title="1.1 socket抽象层"></a>1.1 socket抽象层</h2><p>Linux内核net/socket.c定义了一套socket的操作api。图1展示了socket层所处与TCP/IP协议栈之上和应用层之下。</p>
+<p><img src="https://ask.qcloudimg.com/draft/1198598/ltkdnt65lr.png?imageView2/2/w/1620" alt="img">图1 socket层的位置</p>
+<h2 id="1-2-一些需要预先知道的内核操作api"><a href="#1-2-一些需要预先知道的内核操作api" class="headerlink" title="1.2 一些需要预先知道的内核操作api"></a>1.2 一些需要预先知道的内核操作api</h2><p>socket层大量使用了这些内核操作api，完成协议栈的调用入口。在深度探究socket层实现之前，先来了解下这些内核api。</p>
+<ul>
+<li>fget_light()和fput_light()：轻量级的文件查找入口。多任务对同一个文件进行操作，所以需要对文件做引用计数。fget_light在当前进程的struct files_struct中根据所谓的用户空间文件描述符fd来获取文件描述符。另外，根据当前fs_struct是否被多各进程共享来判断是否需要对文件描述符进行加锁，并将加锁结果存到一个int中返回， fput_light则根据该结果来判断是否需要对文件描述符解锁。fget_light()/fput_light是fget/fput的变形，不用考虑多进程共享同一个文件表而导致的竞争避免锁。fget/fput是指在文件表的引用计数+1/-1</li>
+<li>sockfd_lookup_light根据fd找到相应的socket object（内核真正操作的对象）。</li>
+<li>so_xxx: 内核相关socket操作接口。socket object操作协议栈的api入口。</li>
+<li>in_pcballoc()。分配内核内存，内存名字叫Internet protocol control block。</li>
+<li>in_pcbbind(), 绑定IN_PCB到指定的地址，如果不指定地址，那么会寻找一个可用的端口进行绑</li>
+<li>in_pcblookup()： 指定的端口是否可用。</li>
+<li>sbappend()追加数据到发送缓冲区。</li>
+<li>so-&gt;so_proto-&gt;<em>pr_usrreq 是socket  object操作协议栈的函数</em></li>
+<li>tcp_ursreq()是tcp    协议栈操作的入口函数，支持以下操作类型：PRU_ATTACH，PRU_BIND，PRU_LISTEN, PRU_ACCEPT, PRU_CONNECT, PRU_SHUTDOWN，PRU_ABORT， PRU_DETACH，PRU_SEND，PRU_SENDOOB，PRU_RCVD,PRU_RCVOOB</li>
+<li>tcp_newtcpcb()。TCP control block被分配，socket描述符指向的正是这个TCP control block。</li>
+<li>tcp_attach().</li>
+<li>tcp_xxx: tcp_close(), tcp_disconect(),tcp_drop()</li>
+<li>pr_xxx: 一套socket层和协议栈通信的接口，包括pr_usrreq()，pr_input()，pr_output()，pr_ctlinput()，pr_ctloutput()。</li>
+</ul>
+<h2 id="1-3-socket函数api"><a href="#1-3-socket函数api" class="headerlink" title="1.3 socket函数api"></a>1.3 socket函数api</h2><h3 id="1-3-1-socket函数"><a href="#1-3-1-socket函数" class="headerlink" title="1.3.1 socket函数"></a>1.3.1 socket函数</h3><ul>
+<li><strong>功能：</strong>在内核创建一个socket对象，并返回引用的操作fd。通过这个fd操作这个socket</li>
+<li><strong>实现：</strong>通过in_pcballoc() 分配Internet control block的内存。接着调用tcp_newtcpcb()分配TCP control block的内存。初始化TCP定时器等。链接Internet control block的内存和TCP control block的内存</li>
+<li><strong>注意：</strong>此时TCP为CLOSED状态</li>
+</ul>
+<p><img src="https://ask.qcloudimg.com/draft/1198598/1xsxjbqbj7.png?imageView2/2/w/1620" alt="img">图2 创建socket函数的流程</p>
+<h3 id="1-3-2-bind函数"><a href="#1-3-2-bind函数" class="headerlink" title="1.3.2 bind函数"></a>1.3.2 bind函数</h3><ul>
+<li><strong>功能：</strong>指派一个ip地址给socket，并且分配一个fd返回</li>
+<li><strong>实现：</strong>检查端口没有被重复绑定过。网卡有带ip。如果没有指定端口，则会先尝试从reserverd port(&lt;1024)开始找，如果还没有可用会继续从ephemeral port （比如1024~5000）找。</li>
+<li><strong>注意：</strong>客户端不需要显示bind，因为connect在内部已经自动实现了bind的逻辑。</li>
+</ul>
+<p><img src="https://ask.qcloudimg.com/draft/1198598/gatrbevlaf.png?imageView2/2/w/1620" alt="img">图3 bind的流程</p>
+<h3 id="1-3-3-connect函数"><a href="#1-3-3-connect函数" class="headerlink" title="1.3.3 connect函数"></a>1.3.3 connect函数</h3><ul>
+<li><strong>功能：</strong>通过该函数建立和对端的有状态连接。connect成功调用意味着TCP三次握手成功</li>
+<li><strong>实现：</strong>在用户态校验服务端地址（要connect的对端地址）是合法的，移入到内核空间，进入内核态进行connect操作。检查是否以及bind，如果没有bind，进行bind。接着soisconnecting会置tcp状态为SYN_SENT，调用tcp_output会发送SYN包。进入睡眠直到协议栈唤醒，如果成功置ESTABLISHED。</li>
+<li><strong>注意：</strong>connect之前的显示调用bind不是必须的，当然有也可以。</li>
+</ul>
+<p><img src="https://ask.qcloudimg.com/draft/1198598/apq2ohw62h.png?imageView2/2/w/1620" alt="img">图4 connect流程</p>
+<h3 id="1-3-4-listen函数"><a href="#1-3-4-listen函数" class="headerlink" title="1.3.4 listen函数"></a>1.3.4 listen函数</h3><ul>
+<li>功能：listen表示协议栈可以接收新的连接请求，同时正常处理连接中的请求数量是有限的（backlog=521）。</li>
+<li>实现：迁移TCP状态从CLOSED迁移到LISTEN</li>
+<li>注意：</li>
+</ul>
+<p><img src="https://ask.qcloudimg.com/draft/1198598/xidviiv9p2.png?imageView2/2/w/1620" alt="img">图5 listen流程</p>
+<h3 id="1-3-5-accept流程"><a href="#1-3-5-accept流程" class="headerlink" title="1.3.5 accept流程"></a>1.3.5 accept流程</h3><ul>
+<li><strong>功能：</strong>从listen socket创建新的通信socket</li>
+<li><strong>实现：</strong>默认accept是阻塞，直到accept到连接，创建新的socket，唤醒客户端，返回这个socket，并且把外网ip和端口从内核协议栈拷贝给用户态应用层。</li>
+<li><strong>注意：</strong>除了accpet，还有accept4（为什么叫4，因为有4个形参）比accept多了一个参数，可以传flag到系统调用。可以看到两者的区别仅仅在于accept4()有第四个参数flags，这个参数如果为0，就跟accept()一样；下面的两个参数可以用按位OR来获取不同的行为。SOCK_NONBLOCK:为新打开的文件描述符设置O_NONBLOCK标志位，如果是accept需要和fcntl()搭配使用，这样设置的效果和accept4是一样的，区别就是用accept的话需要多调用个fcntl函数。SOCK_CLOEXEC: 为新打开的文件描述符设置FD_CLOEXEC标志位，该标志位的作用是在进程使用fork()加上execve()的时候自动关闭打开的文件描述符。其实使用fcntl()设置FD_CLOEXEC标志位（也就是用open()的时候设置的O_CLOEXEC标志位）也能达到同样的效果，但跟fcntl()有什么不同呢？在多线程环境中，如果使用fcntl()会多出一步操作，这样就可能形成竞争。而使用accept4()就可以直接在打开的文件描述符上设置，可以消除竞争的问题。（原则上该竞争在那些新建文件描述符的调用中都存在，所以很多linux的系统调用都做了类似的处理）</li>
+</ul>
+<p><img src="https://ask.qcloudimg.com/draft/1198598/n89um71tqk.png?imageView2/2/w/1620" alt="img">图6 accept流程</p>
+<h3 id="1-3-6-send-write函数"><a href="#1-3-6-send-write函数" class="headerlink" title="1.3.6 send/write函数"></a><strong>1.3.6 send/write函数</strong></h3><ul>
+<li><strong>功能：</strong>发送数据</li>
+<li><strong>实现：</strong>验证socket和connection状态，分配空间，拷贝消息到内核</li>
+<li><strong>注意：</strong>发送函数有4个api：sendto，sendmsg，write，writev。send只能操作网络fd，而write更通用，可用处理任意通用fd。另外send允许您为实际操作指定某些选项。读/写是“通用”文件描述符函数，而recv / send稍微更专门化(例如，您可以设置一个标志忽略SIGPIPE，或者发送带外消息…)。</li>
+</ul>
+<p><img src="https://ask.qcloudimg.com/draft/1198598/qv21rkh195.png?imageView2/2/w/1620" alt="img">图7 send流程</p>
+<h3 id="1-3-7-recv-read函数"><a href="#1-3-7-recv-read函数" class="headerlink" title="1.3.7 recv/read函数"></a>1.3.7 recv/read函数</h3><ul>
+<li>功能：接收数据</li>
+<li>实现：除了拷贝内核接收区的数据到应用层，还发送窗口更新信息给网络对端</li>
+<li>注意：recv和send一样也提供了4套接口：recvfrom，recvmsg，read，readv。recv和read的区别如同send和write的区别</li>
+</ul>
+<p><img src="https://ask.qcloudimg.com/draft/1198598/h7fx6clcb5.png?imageView2/2/w/1620" alt="img">图8 recv流程</p>
+<h3 id="1-3-8-close函数"><a href="#1-3-8-close函数" class="headerlink" title="1.3.8 close函数"></a><strong>1.3.8 close函数</strong></h3><ul>
+<li><strong>功能：关闭连接</strong></li>
+<li><strong>实现：如果是</strong>listening socket：遍历两个保持正在连接的pending conection的队列。阻止进一步的accept导致的tcp连接下一步状态迁移。比如说连接处于SYN_RCVD，那么会发送RST包。如果是其他socket，那么会置detach 连接在socket的control block。并且检查linger选项和linger time。如果linger time为0，那么会立即drop掉这个tcp连接。否则则有可能会发送FIN包关闭连接</li>
+<li>注意：</li>
+</ul>
+<p><img src="https://ask.qcloudimg.com/draft/1198598/jwz94ngzec.png?imageView2/2/w/1620" alt="img">图9 close流程</p>
+<h3 id="1-3-9-shundown函数"><a href="#1-3-9-shundown函数" class="headerlink" title="1.3.9 shundown函数"></a><strong>1.3.9 shundown函数</strong></h3><p>拒绝新的网络读数据，释放资源，丢弃读缓冲区，并且关闭读端连接，协议栈将写端缓冲区buff发送出去，并且关闭写端。写端关闭有可能会发送FIN包。</p>
+<h1 id="二、深入理解过程"><a href="#二、深入理解过程" class="headerlink" title="二、深入理解过程"></a>二、深入理解过程</h1><h2 id="2-1-tcp的三次握手"><a href="#2-1-tcp的三次握手" class="headerlink" title="2.1 tcp的三次握手"></a>2.1 tcp的三次握手</h2><p><img src="https://ask.qcloudimg.com/draft/1198598/2rm1q619bt.png?imageView2/2/w/1620" alt="img">图10 tcp三次连接（上半部分）</p>
+<p><img src="https://ask.qcloudimg.com/draft/1198598/oqt0dy00im.png?imageView2/2/w/1620" alt="img">图11 tcp连接的下半部分</p>
+<h2 id="2-2-为什么是3次，而不是2次"><a href="#2-2-为什么是3次，而不是2次" class="headerlink" title="2.2 为什么是3次，而不是2次"></a>2.2 为什么是3次，而不是2次</h2><p>此时已经客户端已经显示ESTABLISHED，是否可代表只需要两次握手。</p>
+<p>为什么不是两次握手，而是三次握手，会有什么问题</p>
+<p>还有一种失效连接的处理，客户端向服务端发出的SYN包延迟了，服务端没收到，客户端再重新发一个SYN包，然后服务端新建了这个连接。那么此时如果之前由于网络节点的延迟又达到了B，那么B会以为是A发起的新连接。于是B同意，并向A发起确认，但是此时A根本不会理会。B一直等A发送应用层数据，但是A并没有这个连接的发送任务。</p>
+<h1 id="三、异常情况"><a href="#三、异常情况" class="headerlink" title="三、异常情况"></a>三、异常情况</h1><h2 id="3-1-accept过程的异常"><a href="#3-1-accept过程的异常" class="headerlink" title="3.1  accept过程的异常"></a>3.1  accept过程的异常</h2><h3 id="3-1-1-SYN没成功的重试次数"><a href="#3-1-1-SYN没成功的重试次数" class="headerlink" title="3.1.1 SYN没成功的重试次数"></a>3.1.1 SYN没成功的重试次数</h3><p>服务端会根据/proc/sys/net/ipv4/tcp_synack_retries（我的机器设置为5）设置的重试次数，重发SYN+ACK，</p>
+<h3 id="3-1-2-backlog已满的状态怎么办"><a href="#3-1-2-backlog已满的状态怎么办" class="headerlink" title="3.1.2 backlog已满的状态怎么办"></a>3.1.2 backlog已满的状态怎么办</h3><ul>
+<li>服务端发送SYN+ACK，客户端收到后会回复ACK，如果此时ACCEPT队列仍处于已满状态，退避2^n后再次重试，直到超过重试次数超过/proc/sys/net/ipv4/tcp_synack_retries设置的次数，服务端链接状态SYNC_RECV-&gt;CLOSED，客户端链接状态为ESTABLISHED。</li>
+<li>如果内核参数/proc/sys/net/ipv4/tcp_abort_on_overflow 是0，服务端会忽略最后一个ACK，此时服务端的TCP链接处于SYN_RECV半连接状态，客户端的TCP链接处于ESTABLISHED状态，客户端以为链接创建成功，服务端却处于半连接状态，<strong>状态不一致！其实这种不一致在TCP/IP协议里经常出现，处理方式一般都是重试和退避。</strong></li>
+<li>如果内核参数/proc/sys/net/ipv4/tcp_abort_on_overflow 是1，则服务端会回复一个RST包，由SYN_RECV-&gt;CLOSED，客户端链接 ESTABLISHED-&gt;CLOSED。</li>
+</ul>
+<h2 id="3-2-send过程中"><a href="#3-2-send过程中" class="headerlink" title="3.2 send过程中"></a>3.2 send过程中</h2><h3 id="3-2-1-进程退出"><a href="#3-2-1-进程退出" class="headerlink" title="3.2.1 进程退出"></a>3.2.1 进程退出</h3><p>先用kill -9方法，其实kill -9不能模拟服务器断电的情况。进程退出总共有8中情况：</p>
+<p>有8种方式使进程终止，其中前5种为正常终止，它们是</p>
+<ul>
+<li>从 main 返回</li>
+<li>调用 exit</li>
+<li>调用 _exit 或 _Exit</li>
+<li>最后一个线程从其启动例程返回</li>
+<li>最后一个线程调用 pthread_exit</li>
+</ul>
+<p>　　异常终止有3种，它们是</p>
+<ul>
+<li>调用 abort</li>
+<li>接到一个信号并终止</li>
+<li>最后一个线程对取消请求做出响应</li>
+</ul>
+<p><img src="https://ask.qcloudimg.com/draft/1198598/eofremt2zg.png?imageView2/2/w/1620" alt="img">图12 进程正常退出</p>
+<p>通过tcp抓包发现，有正常的四次挥手过程</p>
+<h3 id="3-2-2-拔电源、拔网线、交换机瘫痪的办法"><a href="#3-2-2-拔电源、拔网线、交换机瘫痪的办法" class="headerlink" title="3.2.2 拔电源、拔网线、交换机瘫痪的办法"></a>3.2.2 拔电源、拔网线、交换机瘫痪的办法</h3><p> 那如果进程是由于服务器断电，导致的失连，服务器会怎么样。</p>
+<p>操作步骤如下：设备B监听端口。设备A通过connect设备B的监听端口。设备A的进程睡眠，此时断掉设备B的网卡。拔网卡的命令是</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ip link <span class="keyword">set</span> eth0 down; </span><br><span class="line">ip link <span class="keyword">set</span> eth0 up;</span><br></pre></td></tr></table></figure>
+
+<p>设备A停止睡觉，send数据，返回值正是这个数据的长度，如果在继续send，会返回成功吗，会接受到对方RST包吗，为什么。这里看到进程发送完退出，会进入一段次数的退避重传（15次，共924秒，哪里配置的），然后没有FIN挥手过程。</p>
+<p>send为什么成功的解释是，send只会探测到本地的错误，而不会探测到网络错误。</p>
+<p>重试次数的配置：</p>
+<ul>
+<li><p>／proc/sys/net/ipv4／tcp_retries1</p>
+<p> 这个值影响由于某些错误引起的没有ACK的RTO重传和上报这些错误给网路层的时间。</p>
+</li>
+</ul>
+<p>​    RFC 1122推荐至少3次重传，这是个默认值。</p>
+<ul>
+<li><p>／proc/sys/net/ipv4/tcp_retries2</p>
+<p> 这个值影响当RTO重传仍没收到ACK的TCP连接的超时时间。</p>
+<p>给定一个值N，假定一个TCP连接带有TCP_RTO_MIN的初始RTO的指数值会重传N次，在第(N+1)个RTO时杀死这个连接。默认值是15，生成一个假想的超时时间是924.6秒，和一个有效超时的下限。当超过这个假设的超时时间，TCP会在第一个RTO就会超时.RFC1122推荐至少超时时间有100秒，相当于这个值等于8.</p>
+</li>
+</ul>
+<p><img src="https://ask.qcloudimg.com/draft/1198598/hvogscqgt5.png?imageView2/2/w/1620" alt="img">图13 断电掉线，send成功</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://mariolu.xyz/2019/08/07/socket%E6%8E%A5%E5%8F%A3api%E7%9A%84%E6%B7%B1%E5%BA%A6%E6%8E%A2%E7%A9%B6/" data-id="ck5chp3b60000my028l7m9med" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2020/01/04/HTTP2%E4%B9%8B%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%8E%A8%E9%80%81-Server-Push-%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          HTTP2之服务器推送(Server Push)最佳实践
+        
+      </div>
+    </a>
+  
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">一月 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">八月 2019</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2020/01/13/hello-world/">Hello World</a>
+          </li>
+        
+          <li>
+            <a href="/2020/01/13/%E5%A6%82%E4%BD%95%E9%80%9A%E8%BF%87%E5%91%BD%E4%BB%A4%E8%A1%8C%E8%AE%BF%E9%97%AEunix-socket%E6%96%87%E4%BB%B6/">如何通过命令行访问unix socket文件</a>
+          </li>
+        
+          <li>
+            <a href="/2020/01/13/%E6%83%8A%E7%BE%A4%E6%95%88%E5%BA%94/">惊群效应</a>
+          </li>
+        
+          <li>
+            <a href="/2020/01/06/%E5%BE%AE%E5%9E%8B%E5%88%86%E5%B8%83%E5%BC%8F%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E8%8C%83%E4%BE%8B/">微型分布式架构设计范例</a>
+          </li>
+        
+          <li>
+            <a href="/2020/01/05/%E6%88%91%E6%98%AF%E6%80%8E%E4%B9%88%E4%B8%80%E6%AD%A5%E6%AD%A5%E7%94%A8go%E6%89%BE%E5%87%BA%E5%8E%8B%E6%B5%8B%E6%80%A7%E8%83%BD%E7%93%B6%E9%A2%88/">我是怎么一步步用go找出压测性能瓶颈</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020 Mario Lu<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

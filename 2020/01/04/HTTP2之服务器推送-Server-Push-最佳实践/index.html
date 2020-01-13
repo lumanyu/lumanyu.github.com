@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>HTTP2之服务器推送(Server Push)最佳实践 | Hexo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="HTTP&#x2F;1.X出色地满足互联网的普遍访问需求，但随着互联网的不断发展，其性能越来越成为瓶颈。IETF在2015年发布了HTTP&#x2F;2标准,着重于提高HTTP的访问体验, HTTP2优势主要包括:二进制传输、头部压缩、多路复用和服务器推送(Server Push)。 截止目前,大部分CDN厂商已经宣布支持HTTP&#x2F;2，然而”支持”大多省略了服务器推送(ServerPush)特性。估计这和nginx开">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HTTP2之服务器推送(Server Push)最佳实践">
+<meta property="og:url" content="http://mariolu.xyz/2020/01/04/HTTP2%E4%B9%8B%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%8E%A8%E9%80%81-Server-Push-%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="HTTP&#x2F;1.X出色地满足互联网的普遍访问需求，但随着互联网的不断发展，其性能越来越成为瓶颈。IETF在2015年发布了HTTP&#x2F;2标准,着重于提高HTTP的访问体验, HTTP2优势主要包括:二进制传输、头部压缩、多路复用和服务器推送(Server Push)。 截止目前,大部分CDN厂商已经宣布支持HTTP&#x2F;2，然而”支持”大多省略了服务器推送(ServerPush)特性。估计这和nginx开">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/7b3c9a295994a6130b3573c8bc6e8bc9_gcusik.png">
+<meta property="og:image" content="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/c4e52abacbc71b9ed705072f6642824f_cgpgow.png">
+<meta property="og:image" content="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/8ddae0d5aa4631a8f729230cab1b0df7_plqf9q.png">
+<meta property="og:image" content="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/7bcf5b1677e7706c316be8b1eedc0136_cot90x.png">
+<meta property="og:image" content="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/33f3fa07c9aabb85a4823a460a42cea6_xqlt7i.gif">
+<meta property="og:image" content="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/b8392eb26a34ec3a2e4a2ecb0658104f_xqebgv.png">
+<meta property="og:image" content="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/99bc12ffe2a587b76f1a557d58ee545b_ok3eo2.png">
+<meta property="og:image" content="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/d4147519309b95d0c8a63a4338fab127_ahah1r.png">
+<meta property="og:image" content="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/4bf1d97393d3f42603adb6276e3c3378_vuoeib.png">
+<meta property="og:image" content="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/eea91812eeb923624a997b7f6858dea7_xs4rv8.png">
+<meta property="og:image" content="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/202101ce9b9f825594160516b0fdfc33_kfwunn.png">
+<meta property="og:image" content="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/1a6495a72d74409bfc8c4ed1c4fa1ba1_hn1d42.png">
+<meta property="og:image" content="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/6d9c40fb3ad771ffe79460bc6837f19b_snmtsa.png">
+<meta property="article:published_time" content="2020-01-04T10:19:08.000Z">
+<meta property="article:modified_time" content="2020-01-13T13:35:05.112Z">
+<meta property="article:author" content="Mario Lu">
+<meta property="article:tag" content="Full Stack">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/7b3c9a295994a6130b3573c8bc6e8bc9_gcusik.png">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Hexo</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://mariolu.xyz"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-HTTP2之服务器推送-Server-Push-最佳实践" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/01/04/HTTP2%E4%B9%8B%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%8E%A8%E9%80%81-Server-Push-%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/" class="article-date">
+  <time datetime="2020-01-04T10:19:08.000Z" itemprop="datePublished">2020-01-04</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      HTTP2之服务器推送(Server Push)最佳实践
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>HTTP/1.X出色地满足互联网的普遍访问需求，但随着互联网的不断发展，其性能越来越成为瓶颈。IETF在2015年发布了HTTP/2标准,<br>着重于提高HTTP的访问体验, HTTP2优势主要包括:<br>二进制传输、头部压缩、多路复用和服务器推送(Server Push)。 截止目前,<br>大部分<em>CDN</em>厂商已经宣布支持HTTP/2，然而”支持”大多省略了服务器推送(ServerPush)特性。估计这和nginx开源版本没有支持Server<br>Push相关。为提供完备的HTTP2能力，腾讯CDN现已完成HTTP/2的Server<br>Push支持，并完成了详细的性能测试。</p>
+<h1 id="序言"><a href="#序言" class="headerlink" title="序言"></a>序言</h1><p><strong>在介绍Server<br>Push功能之前，先来分析网站的加载过程。图1是腾讯课堂(<a href="https://ke.qq.com/index.html)的时间瀑布图。" target="_blank" rel="noopener">https://ke.qq.com/index.html)的时间瀑布图。</a></strong></p>
+<p>a) 首先浏览器请求主页面index.html，服务端响应内容；</p>
+<p>b) 获取到主页应答，浏览器开始解析主页的html标签，发现构建DOM树还需要CSS, GIF,<br>JS等资源；</p>
+<p>c) 发起针对CSS,GIF,JS的内容请求；</p>
+<p>d) 获取并解析JS和CSS等内容, 然后继续请求依赖资源。</p>
+<p><img src="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/7b3c9a295994a6130b3573c8bc6e8bc9_gcusik.png" alt=""></p>
+<p>图1   腾讯课堂域名的时间瀑布图</p>
+<p>图2是简化的浏览器和服务器的交互过程，横轴代表时间轴，每个虚线区间是1个RTT。红色竖线表示DOM 加载完成的时间。从图中可知，虽然存在并发传输, 但主页index.html和依赖的资源common.css、0684a8bf.css、comb.nowrap.0b772fee.js等总体上是顺序的，等待资源响应的时间减慢了主页面加载速度。并发传输并不能提高串行解析的资源访问体验。</p>
+<p>如果服务端接收到客户端主请求，能够“预测”主请求的依赖资源，在响应主请求的同时，主动并发推送依赖资源至客户端。客户端解析主请求响应后，可以”无延时”从本地缓存获取依赖资源, 减少访问延时, 提高访问体验，也加大了链路的并发能力。Server<br>Push正是基于此原理来提高网络体验。</p>
+<p><img src="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/c4e52abacbc71b9ed705072f6642824f_cgpgow.png" alt=""></p>
+<p>图3说明了若采用服务端推送的功能，则JS/CSS资源基本可以和HTML资源同步到达，浏览器可以“无延时”获取JS/CSS资源，客户端的延时最多可以减少一个RTT。</p>
+<p>构建一个简单的例子来验证我们的说法。图4所示为simple_push.html代码，页面依赖资源simple_push.js和simple_nopush.js, 页面大小均不超过1KB，主要时间消耗在传输延时。如图5所示为推送simple_push.js和不推送simple_nopush.js的效果对比。</p>
+<p><img src="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/8ddae0d5aa4631a8f729230cab1b0df7_plqf9q.png" alt=""></p>
+<p>图4 推送测试HTML代码</p>
+<p><img src="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/7bcf5b1677e7706c316be8b1eedc0136_cot90x.png" alt=""></p>
+<p>图5 不推送&amp;推送的效果对比</p>
+<p>我们上线了一个测试demo网站（<a href="https://http1.gtimg.cn/push/mypush.html）。网页上展示一张世界地图，由400个小图片组成。对比三种访问方式：HTTP/1.1、HTTP/2（无Server" target="_blank" rel="noopener">https://http1.gtimg.cn/push/mypush.html）。网页上展示一张世界地图，由400个小图片组成。对比三种访问方式：HTTP/1.1、HTTP/2（无Server</a><br>Push）和 HTTP/2（Server Push）。Server<br>Push选择推送第150~179个共30个小图。访问性能数据对比如图6所示：可以发现预推送比无推送有一定的性能提升（受网络延时和客户端行为影响，结果存在波动，后文有相应分析）。</p>
+<p><img src="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/33f3fa07c9aabb85a4823a460a42cea6_xqlt7i.gif" alt=""></p>
+<p>图6 demo网站测试</p>
+<p>简要介绍了Server<br>Push的优化原理之后，伴随而来的疑问，推送什么资源，怎么去推送，以及比其他优化技术有什么优势？读完本章，这些问题将一一得到解答，文章最后用实例展示Server<br>Push的应用场景和性能优化效果。</p>
+<h1 id="一、推送实现"><a href="#一、推送实现" class="headerlink" title="一、推送实现"></a>一、推送实现</h1><h2 id="1、标识依赖资源"><a href="#1、标识依赖资源" class="headerlink" title="1、标识依赖资源"></a>1、标识依赖资源</h2><p>W3C候选推荐标准（<a href="https://www.w3.org/TR/preload/）建议了依赖资源的两种做法：文件内\" target="_blank" rel="noopener">https://www.w3.org/TR/preload/）建议了依赖资源的两种做法：文件内\</a>&lt;link&gt;标签和HTTP头部携带, 表示该资源后续会被使用, 可以预请求, 关键字preload修饰这个资源, 写法如下：</p>
+<p><strong>a) 静态Link标签法:</strong></p>
+<p>&lt;link rel=”preload” href=”push.css” as=”style”&gt;</p>
+<p><strong>b) HTTP头表示法：</strong></p>
+<p>Link: &lt;push.css&gt;; rel=preload; as=style</p>
+<p>其中rel表明了资源&lt;/push.css&gt;是预加载的，as表明了资源的文件类型。另外，link还可以用nopush修饰，表示浏览器可能已经有该资源缓存，指示有推送能力的服务端不主动推送资源，只有当浏览器先检查到没有缓存，才去指示服务端推送资源，nopush格式写成：</p>
+<p>Link: &lt;/app/script.js&gt;; rel=preload; as=script;nopush。</p>
+<h2 id="2、推送资源"><a href="#2、推送资源" class="headerlink" title="2、推送资源"></a>2、推送资源</h2><p>用户访问CDN，主要包括直接访问的边缘节点, 若干中间节点和客户源站，路径中的每层都可以对请求做分析，预测可能的依赖资源，通过插入静态&lt;link&gt;标签或者增加响应头部返回给浏览器。 CDN的推送主要采用头部携带推送信息。</p>
+<h3 id="a-客户端指定推送资源"><a href="#a-客户端指定推送资源" class="headerlink" title="a) 客户端指定推送资源"></a>a) 客户端指定推送资源</h3><p>客户端通过url或者请求头说明需要的资源url，写法如下：</p>
+<p>Url：<a href="http://http2push.gtimg.com/simple_push.html?req-push=simple_push.js" target="_blank" rel="noopener">http://http2push.gtimg.com/simple_push.html?req-push=simple_push.js</a></p>
+<p>或者：</p>
+<p>GET /simple_push.html HTTP/1.1</p>
+<p>Host: http2push.gtimg.com</p>
+<p>User-Agent: curl/7.49.1</p>
+<p>Accept: */*</p>
+<p>X-Push-Url: simple_push.js</p>
+<h3 id="b-CDN节点指定推送资源"><a href="#b-CDN节点指定推送资源" class="headerlink" title="b) CDN节点指定推送资源"></a>b) CDN节点指定推送资源</h3><p>CDN节点针对请求资源配置推送资源, 基础配置如下:</p>
+<p>location ~ “/simple_push.html$” {</p>
+<p>http2_server_push_url /simple_push.js</p>
+<p>}</p>
+<h3 id="c-源站指定推送资源"><a href="#c-源站指定推送资源" class="headerlink" title="c) 源站指定推送资源"></a>c) 源站指定推送资源</h3><p>通过增加响应头link通知客户端或者CDN节点，后续希望推送的依赖资源，中间具有    推送功能的节点(如CDN节点)可以基于此信息进行资源请求与推送.</p>
+<h2 id="3、功能实现"><a href="#3、功能实现" class="headerlink" title="3、功能实现"></a>3、功能实现</h2><p><strong>图7所示为CDN的Server Push架构, 基本流程如下:</strong></p>
+<p>a) 用户请求到达服务器之后，依赖资源预测模块根据请求头或者配置预测浏览器需要的资源,该推送资源url必须是和主请求是同一host。如果不属于同一host，服务器拒绝推送资源。</p>
+<p>b) 服务器通过PUSH_PROMISE桢告诉浏览器准备推送的资源路径，该信息在原主请求流上发送，必须优先主请求响应发送，否则浏览器可能在推送资源到达前已经发起了依赖资源请求，造成重复和浪费.</p>
+<p>c) 依赖资源请求模块构造和主请求一样的请求信息，在本地或后端服务器请求推送资源,并主动创建新的HTTP/2请求流，后续服务器就可以发送资源响应，推送资源响应在服务端创建的流上传输，主页面响应在原始流传输。</p>
+<p><img src="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/b8392eb26a34ec3a2e4a2ecb0658104f_xqebgv.png" alt=""></p>
+<p>图7 CDN的Server Push模块改造示意图</p>
+<p><strong>CDN节点的推送资源发送顺序在主请求响应之前，如图8所示，主要基于以下因素考量：</strong></p>
+<p>d) 推送资源一般是静态的缓存命中率高的资源，如JS、CSS、字体和图片等。这些资源可以从源站预先推送并缓存到CDN节点。相比之下, 主页面变更较多，需要等待网络IO去源站取数据。同时，CDN边缘节点到浏览器的RTT一般是比CDN节点到源站的RTT更短。所以在取到主页面最新响应之前，有充足的时间去推送资源。</p>
+<p>e) 资源推送可以探测提高TCP拥塞窗口，窗口逐渐增大，后续可以一次性发送完主页面响应。TCP拥塞窗口对推送影响将在下文第三部分讨论。</p>
+<p>f) 在等待主请求响应的网络IO时间期间，推送资源可以是无优先级关系，资源推送优先级对推送影响也将在下文第三部分讨论。</p>
+<p><img src="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/99bc12ffe2a587b76f1a557d58ee545b_ok3eo2.png" alt=""></p>
+<p>图8 推送时间点位于主页面响应之前</p>
+<h1 id="二Server-Push技术对比"><a href="#二Server-Push技术对比" class="headerlink" title="二Server Push技术对比"></a>二Server Push技术对比</h1><h2 id="1、纵向对比"><a href="#1、纵向对比" class="headerlink" title="1、纵向对比"></a>1、纵向对比</h2><p><strong>Server Push相对应没有Server Push的具体提升如下：</strong></p>
+<p>a) Nopush加载耗时：Tnopush = RTT+ max(RTT,<br>size(HTML)/BandWidth)+size(JS)/BandWidth</p>
+<p>b) push耗时：Tpush = RTT + size(HTML)/BandWidth + size(JS)/BW</p>
+<p>c) 改善效率：diff =1 - Tpush/TnoPush</p>
+<p>所以决定推送是否有改善性能的衡量因素是size(HTML/BandWidth)和RTT谁大。这里引入BDP(BandWidth-Delay<br>product, 带宽时延乘积)概念。BDP描述了单位时间内该带宽能传输的数据大小。如果size(HTML)&lt;BDP，推荐使用push；反之不推荐使用push。</p>
+<h2 id="2、横向对比"><a href="#2、横向对比" class="headerlink" title="2、横向对比"></a>2、横向对比</h2><p>HTTP/1.1中有个资源内联（Resource<br>Inlining）技术，把资源内容拷贝到HTML标签中。比如说&lt;script&gt;可以装载js的内容，&lt;style&gt;可以装载CSS的内容等。这样JS或者CSS的内容就会在第一个响应中推送给浏览器。虽然说它可以做到网站加速。但是它有很多server<br>push没有的缺点。例如资源不能脱离HTML被浏览器单独缓存，并且这个资源在多个url中重复传输多遍。这在多个url共享这个资源的场景是不明智的做法。而使用Server<br>Push，在CDN能适用更丰富的应用场景。</p>
+<h1 id="三、使用场景分析"><a href="#三、使用场景分析" class="headerlink" title="三、使用场景分析"></a>三、使用场景分析</h1><p>理论上，在带宽足够的环境下，把需要的资源预先推送给客户端，必然能够节省获取资源时间，提升页面访问速度。但由于TCP慢启动、资源加载优先级、浏览器缓存等因素约束，我们在实际测试中发现，Server<br>Push并不总能带来页面加载性能的提升。本节深入探讨下什么场景下的资源适合使用推送。</p>
+<h2 id="1、TCP慢启动"><a href="#1、TCP慢启动" class="headerlink" title="1、TCP慢启动"></a>1、TCP慢启动</h2><p>先复习下TCP慢启动特性：为了防止网络拥塞，TCP将放弃超出拥塞窗口大小的数据。只有当拥塞串口大小的数据传输完成，这个窗口大小将乘以2。如此，能够传输的数据以2的倍数增长。假设拥塞窗口大小为14kB，下图展示了某些情况下，推送比不推送的效率没有提升。</p>
+<p><img src="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/d4147519309b95d0c8a63a4338fab127_ahah1r.png" alt=""></p>
+<p>图9 tcp慢启动对服务器推送的影响</p>
+<p>对比图9中子图1和子图2，子图1虽然预推送了/style.css，但是第一次RTT只传输了/style.css的4KB数据，剩下的16KB在第2个RTT完成。子图1总共需要2个RTT的时间，和子图2没有进行推送用了同样多的时间。子图3使用了3RTT完成了整个网站的传输，这会比没有推送使用更多的时间。</p>
+<h2 id="2、资源加载优先级"><a href="#2、资源加载优先级" class="headerlink" title="2、资源加载优先级"></a>2、资源加载优先级</h2><p>先看下面一个网站例子：</p>
+<p>&lt;html&gt;</p>
+<p>&lt;head&gt;</p>
+<p>&lt;script src=”1.js”&gt;&lt;/script&gt;</p>
+<p>&lt;script src=”3.js”&gt;&lt;/scirpt&gt;</p>
+<p>&lt;script src=”4.js”&gt;&lt;/script&gt;</p>
+<p>&lt;/head&gt;</p>
+<p>&lt;body&gt;&lt;/body&gt;</p>
+<p>&lt;/html&gt;</p>
+<p>其中1.js会调用2.js文件，3.js和4.js没有调用其他JS。</p>
+<p>正常没推送的例子加载时间表格会是</p>
+<p><img src="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/4bf1d97393d3f42603adb6276e3c3378_vuoeib.png" alt=""></p>
+<p>图10  资源加载优先级的nopush&amp;push效果图</p>
+<p>可以看出是因为1.js的加载优先级本应该在3.js和4.js之前，但是预先推送了3.js和4.js，然而1.js需要重新请求，并触发2.js请求，导致等待1RTT接收2.js。所以Push比No<br>Push的效率更差。</p>
+<h2 id="3、内核缓冲区"><a href="#3、内核缓冲区" class="headerlink" title="3、内核缓冲区"></a>3、内核缓冲区</h2><p>HTTP/2的请求优先级并不能影响已经在内核发送缓冲区的数据。假设内核发送缓冲区大小比TCP拥塞串口大，导致服务端发送低优先级的数据，存在内核缓冲区。这时，后续有高优先级的响应必须等内核缓冲区空出才能被完成。假设我们访问一个HTML页面，这个HTML页面需要回源站取数据，而HTML需要的静态JS资源缓存在CDN边缘节点上。在回源站的等待时间内，把静态JS资源发送给浏览器。如果这时候静态JS资源很大，塞满了内核发送缓冲区，此时HTML响应已经到达CDN边缘节点，却不得不等内核缓冲区有空间才能继续发送。等待浏览器解析HTML内容后续的link请求也会被推迟。</p>
+<h2 id="4、浏览器缓存"><a href="#4、浏览器缓存" class="headerlink" title="4、浏览器缓存"></a>4、浏览器缓存</h2><p>推送浏览器已缓存的资源有可能使的加载时间更长，并且浪费带宽资源。重复推送已缓存的资源，如果没有额外的空闲带宽传输，网络会阻塞它之后正常的请求，导致拖累了整个网站的加载时间。</p>
+<h1 id="四、网站测试"><a href="#四、网站测试" class="headerlink" title="四、网站测试"></a>四、网站测试</h1><p>我们对现网一些网页进行Server<br>Push性能测试，因为推送要求同一个域名下的HTTP/2请求，为了规避非HTTP/2和跨余名带来的干扰，我们设置了代理节点，代理节点完成HTTP/2支持和域名收归，同时配置Server<br>Push功能，观察网页的加载收益。为了准确测试Push带来网络时延变化，需要稳定的网络环境，在chrome设置网络环境mytest（RTT:<br>200ms, Download: 29Mb/s, Upload: 14Mb/s），以下的例子都在该网络环境进行测试。</p>
+<h2 id="1、腾讯新闻"><a href="#1、腾讯新闻" class="headerlink" title="1、腾讯新闻"></a>1、腾讯新闻</h2><p>按照前面描述的推送适用场景，用这个腾讯新闻页面（<a href="https://news.qq.com/a/20171031/032143.htm）做测试。主请求页面大小为11.6K。可以看出，预先推送js、css、图片等资源给客户端带来的网站性能变快。" target="_blank" rel="noopener">https://news.qq.com/a/20171031/032143.htm）做测试。主请求页面大小为11.6K。可以看出，预先推送js、css、图片等资源给客户端带来的网站性能变快。</a></p>
+<p><img src="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/eea91812eeb923624a997b7f6858dea7_xs4rv8.png" alt=""></p>
+<p>图11  腾讯新闻页面</p>
+<p><img src="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/202101ce9b9f825594160516b0fdfc33_kfwunn.png" alt=""></p>
+<p>图12  腾讯新闻页面的无推送&amp;推送对比图</p>
+<h2 id="2、腾讯客服"><a href="#2、腾讯客服" class="headerlink" title="2、腾讯客服"></a>2、腾讯客服</h2><p>腾讯客服页面不支持HTTPS协议。之所以用这个页面是因为该网页页面主请求比较小，并且有JS、CSS触发的次优先级资源请求。我们把这个网页下载下来，并做了一些推送资源域名收归等必要的处理，放在CDN边缘节点做测试。这并没有改变网站的资源和请求顺序，不影响测试效果。</p>
+<p>图13是腾讯客服的页面。图14列出腾讯客服页面的所有请求。我们关注下具体几种情况的时间轴：无推送、推送小文件、推送大文件。小文件推送预先在第一个RTT把3个第3层请求才能触发的资源（tcss.ping.js、cdn_djl.js、layer.css）预先推送给浏览器。大文件推送是预先推送了indexBanner.png。</p>
+<p>从图14中的无推送和推送3个小文件的子图中，红色虚竖线是指不包括indexBanner.png的加载完成时间，由于3个小文件（尤其是次优先级请求tcss.ping.js）的提取推送，比无推送的时间延迟要短。但是又从无推送和推送大文件的子图中看到，如果无优先级顺序地推送大文件indexBanner.png（782KB）对缩短网站时延无帮助。</p>
+<p><img src="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/1a6495a72d74409bfc8c4ed1c4fa1ba1_hn1d42.png" alt=""></p>
+<p>图13  腾讯客服页面</p>
+<p><img src="https://res.cloudinary.com/lumanyu/image/upload/v1578188924/http2_server_push/6d9c40fb3ad771ffe79460bc6837f19b_snmtsa.png" alt=""></p>
+<p>图14  无推送&amp;推送小文件&amp;推送大文件的对比图</p>
+<h1 id="五、总结"><a href="#五、总结" class="headerlink" title="五、总结"></a>五、总结</h1><p>虽然本章的测试用例只是庞大互联网网页的冰山一角，文章不能覆盖各种网页场景。但是以下的一些总结建议是有实践意义的。</p>
+<p>1、在合适的时机，推送合适的资源，Push比No<br>Push带来的网站时延提升是明显的。在网络带宽足够承载推送资源的前提下，我们预先推送浏览器后续请求需要的资源，网站的整体加载时间得到缩短。但是现实网络环境有不一样的延时和带宽。慢速网络环境影响TCP拥塞窗口增长的速度，除非主页面请求足够小，Push才能看到效果。</p>
+<p>2、即使是错误地实施某些推送策略（比如说推送过大文件），带来的最严重后果，也就是改善不明显。所以建议是多做一些推送策略的尝试，直到把合适的资源在合适的时机把资源推送给浏览器。</p>
+<p>3、网站往HTTP/2的环境迁移是个趋势。迁往HTTP/2需要将页面的所有请求尽量收归到同一域名，并且剥离出主页面的资源文件成多个独立的请求。假如你的网站已迁移到HTTP/2，而且网站的主请求不大，但是可能会触发很多资源请求。建议push这些资源。另外不要推送存放在浏览器cookie的资源，这只会浪费带宽。</p>
+<p>4、目前的Server<br>Push推送机制没有解决浏览器已经具有资源缓存，而服务器已经推送到网络中，虽然浏览器可以发送RST桢拒绝推送流，但是服务器推送的资源已经在网络中等待浏览器接收。现在已经有一些规范草案（<a href="https://tools.ietf.org/html/draft-kazuho-h2-cache-digest-01）尝试用协商缓存摘要来解决问题。" target="_blank" rel="noopener">https://tools.ietf.org/html/draft-kazuho-h2-cache-digest-01）尝试用协商缓存摘要来解决问题。</a></p>
+<p>5、CDN中的<a href="https://cloud.tencent.com/product/clb?from=10909" target="_blank" rel="noopener">负载均衡</a>机制可能会将低优先级的推送资源送入到系统缓存区，这会影响高优先级资源的推送效率问题。引入QUIC替代TCP，可以对缓存中推送资源进行分级，高优先级资源先发。</p>
+<p>6、未来或将引入AI分析取代固定推送实现智能化推送。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://mariolu.xyz/2020/01/04/HTTP2%E4%B9%8B%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%8E%A8%E9%80%81-Server-Push-%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/" data-id="ck5chp3bh0003my0258137sdz" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2020/01/05/%E6%88%91%E6%98%AF%E6%80%8E%E4%B9%88%E4%B8%80%E6%AD%A5%E6%AD%A5%E7%94%A8go%E6%89%BE%E5%87%BA%E5%8E%8B%E6%B5%8B%E6%80%A7%E8%83%BD%E7%93%B6%E9%A2%88/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          我是怎么一步步用go找出压测性能瓶颈
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2019/08/07/socket%E6%8E%A5%E5%8F%A3api%E7%9A%84%E6%B7%B1%E5%BA%A6%E6%8E%A2%E7%A9%B6/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">socket接口api的深度探究</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">一月 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">八月 2019</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2020/01/13/hello-world/">Hello World</a>
+          </li>
+        
+          <li>
+            <a href="/2020/01/13/%E5%A6%82%E4%BD%95%E9%80%9A%E8%BF%87%E5%91%BD%E4%BB%A4%E8%A1%8C%E8%AE%BF%E9%97%AEunix-socket%E6%96%87%E4%BB%B6/">如何通过命令行访问unix socket文件</a>
+          </li>
+        
+          <li>
+            <a href="/2020/01/13/%E6%83%8A%E7%BE%A4%E6%95%88%E5%BA%94/">惊群效应</a>
+          </li>
+        
+          <li>
+            <a href="/2020/01/06/%E5%BE%AE%E5%9E%8B%E5%88%86%E5%B8%83%E5%BC%8F%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E8%8C%83%E4%BE%8B/">微型分布式架构设计范例</a>
+          </li>
+        
+          <li>
+            <a href="/2020/01/05/%E6%88%91%E6%98%AF%E6%80%8E%E4%B9%88%E4%B8%80%E6%AD%A5%E6%AD%A5%E7%94%A8go%E6%89%BE%E5%87%BA%E5%8E%8B%E6%B5%8B%E6%80%A7%E8%83%BD%E7%93%B6%E9%A2%88/">我是怎么一步步用go找出压测性能瓶颈</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020 Mario Lu<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

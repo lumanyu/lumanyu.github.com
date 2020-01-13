@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>微型分布式架构设计范例 | Hexo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="序言（初衷） 设计该系统初衷是基于描绘业务（或机器集群）存储模型，分析代理缓存服务器磁盘存储与回源率的关系。系统意义是在腾讯云成本优化过程中，量化指导机房设备扩容。前半部分是介绍背景，对CDN缓存模型做一些理论思考。后半部分会实际操作搭建一个微型但是五脏俱全的分布式通用系统架构，最后赋予该系统一些跟背景相关的功能，解决成本优化中遇到的实际问题。 缓存服务器存储模型架构（背景）：  图1 存储模型">
+<meta property="og:type" content="article">
+<meta property="og:title" content="微型分布式架构设计范例">
+<meta property="og:url" content="http://mariolu.xyz/2020/01/06/%E5%BE%AE%E5%9E%8B%E5%88%86%E5%B8%83%E5%BC%8F%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E8%8C%83%E4%BE%8B/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="序言（初衷） 设计该系统初衷是基于描绘业务（或机器集群）存储模型，分析代理缓存服务器磁盘存储与回源率的关系。系统意义是在腾讯云成本优化过程中，量化指导机房设备扩容。前半部分是介绍背景，对CDN缓存模型做一些理论思考。后半部分会实际操作搭建一个微型但是五脏俱全的分布式通用系统架构，最后赋予该系统一些跟背景相关的功能，解决成本优化中遇到的实际问题。 缓存服务器存储模型架构（背景）：  图1 存储模型">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://res.cloudinary.com/lumanyu/image/upload/v1578283471/mini_arch_system/543e98f71930064bef971c2d6784544d_pvhpe7.jpg">
+<meta property="og:image" content="http://res.cloudinary.com/lumanyu/image/upload/v1578283471/mini_arch_system/dd857b4d1d1ad9bb89542041090aefff_acd61h.jpg">
+<meta property="og:image" content="http://res.cloudinary.com/lumanyu/image/upload/v1578283471/mini_arch_system/ade420cb4068108a80bc08d865ee8bd7_sxidhx.jpg">
+<meta property="og:image" content="http://res.cloudinary.com/lumanyu/image/upload/v1578283471/mini_arch_system/35ef273cdd78951fe504572d6fd67289_w2yhzs.jpg">
+<meta property="og:image" content="http://res.cloudinary.com/lumanyu/image/upload/v1578283471/mini_arch_system/bc41cc7c73b9682f9b6ddd96101380f3_mxpsgm.jpg">
+<meta property="article:published_time" content="2020-01-06T04:21:48.000Z">
+<meta property="article:modified_time" content="2020-01-13T13:35:05.112Z">
+<meta property="article:author" content="Mario Lu">
+<meta property="article:tag" content="Full Stack">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://res.cloudinary.com/lumanyu/image/upload/v1578283471/mini_arch_system/543e98f71930064bef971c2d6784544d_pvhpe7.jpg">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Hexo</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://mariolu.xyz"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-微型分布式架构设计范例" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/01/06/%E5%BE%AE%E5%9E%8B%E5%88%86%E5%B8%83%E5%BC%8F%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E8%8C%83%E4%BE%8B/" class="article-date">
+  <time datetime="2020-01-06T04:21:48.000Z" itemprop="datePublished">2020-01-06</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      微型分布式架构设计范例
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p><strong>序言（初衷）</strong></p>
+<p>设计该系统初衷是基于描绘业务（或机器集群）存储模型，分析代理缓存服务器磁盘存储与回源率的关系。系统意义是在腾讯云成本优化过程中，量化指导机房设备扩容。前半部分是介绍背景，对CDN缓存模型做一些理论思考。后半部分会实际操作搭建一个微型但是五脏俱全的分布式通用系统架构，最后赋予该系统一些跟背景相关的功能，解决成本优化中遇到的实际问题。</p>
+<p><strong>缓存服务器存储模型架构（背景）：</strong></p>
+<p><img src="http://res.cloudinary.com/lumanyu/image/upload/v1578283471/mini_arch_system/543e98f71930064bef971c2d6784544d_pvhpe7.jpg" alt=""></p>
+<p>图1 存储模型</p>
+<p>腾讯CDN的线上路由是用户à分布于各地区各运营商的OC-&gt;SOC-&gt;SMid-&gt;源站。各个层级节点部署的都是缓存服务器。来自用户的部分请求流量命中服务器，另一部分产生回源流量。</p>
+<p>随着业务带宽自然增长，用户端带宽增长，假设业务回源率不变的情况下，磁盘缓存淘汰更新（淘汰）速率变快，表现为以下业务瓶颈（iowait变高、回源带宽变高，由于磁盘空间大小受限的缓存淘汰导致回源率变高）。</p>
+<p>为了说明这个原理。我们假设两个极端：一个是设备磁盘容量无限大，业务过来的流量缓存只受源站缓存规则受限。只要缓存没过期，磁盘可以无限缓存，回源流量只需要首次访问的流量，所以这个回源量（率）只跟业务特性（重复率）有关系。另一个极端是磁盘极限小（归零），那么无论业务设置缓存是否过期，客户端访问量都是1比1的回源量。假设业务平均的缓存周期是1个小时。那么这1个小时的首次缓存带宽（同一cache<br>key的多次访问，我们认为是一次）将是这个硬盘的所需要的空间。这个大小是合理的，可以保证磁盘足够容纳业务的量。假设这个量达不到，或者本来达到了，但是由于业务自然增长了，1个小时内地首次缓存带宽变多，硬盘空间也不够用。</p>
+<p>设备扩容是个解决办法。但是压测系统在这之前，没有客观数据证明需要扩容多大设备。或者扩容多少设备没有进行灰度验证，设备到位拍脑袋直接线上部署机器。我们在实验机器进行线上日志的重放，模拟出存储模拟曲线，来指导线上机房合理的设备存储。这就是建设重放日志系统的意义。</p>
+<p><strong>麻雀虽小，五脏俱全的重放日志模型（总览）</strong></p>
+<p>这一章，我们定义了下列模块：</p>
+<p>模拟日志服务器：下载线上某个机房的一段时间周期的访问日志。一个日志存放10分钟访问记录。机房有几台机器就下载几份日志。日志服务器同时提供任务分片信息的查询服务。假设我们需要重放任务id为pig_120t的任务切片。下图既为任务切片详情。</p>
+<p><img src="http://res.cloudinary.com/lumanyu/image/upload/v1578283471/mini_arch_system/dd857b4d1d1ad9bb89542041090aefff_acd61h.jpg" alt=""></p>
+<p>图2 日志服务器的日志分片文件</p>
+<p>任务控制器：启动任务或者结束任务总开关。任务分配均匀分配给具体的肉鸡和代理服务器。插入任务到Task<br>Pool中，收集服务端的实时总流量、回源流量、总请求次数和回源次数数据并插入到回源率结果数据表。</p>
+<p>肉鸡：轮询Task<br>Pool的任务表。如果有任务，则按照任务明细（时间、线上机房ip）向日志服务器请求下载该分片的日志。重放请求到指定的代理服务器。</p>
+<p>代理服务端：提供实时回源数据查询服务。并且安装nws缓存服务器等组件，该机器等同于线上机房的软件模块。</p>
+<p>实时展示界面：可随时查看实时回源率和一些任务异常状态信息。</p>
+<p>图3为客户端和服务端的互动图。图4是任务控制端在任务进行中和其他模块的联动过程。</p>
+<p><img src="http://res.cloudinary.com/lumanyu/image/upload/v1578283471/mini_arch_system/ade420cb4068108a80bc08d865ee8bd7_sxidhx.jpg" alt=""></p>
+<p>图3 肉鸡和代理服务端的架构</p>
+<p><img src="http://res.cloudinary.com/lumanyu/image/upload/v1578283471/mini_arch_system/35ef273cdd78951fe504572d6fd67289_w2yhzs.jpg" alt=""></p>
+<p>图4 控制端的任务联动过程</p>
+<p><strong>分布式系统特点</strong></p>
+<p>日志重放模型核心是一个高性能压测系统，但是需要添加一些逻辑：日志下载、日志分析重构、结果数据收集、数据上报展示。分布式系统核心是：是否做到了可拓展、可恢复、简易搭建、容错、自动化。以下内容会一一展开。</p>
+<p>先说说高性能：在一个通用模型中。我们模拟线上日志，这个系统要做到高效、因为我们的重放日志速度要比线上的qps还要快。机器的重放速度决定了分析结果的速度。同时更快的速度，所需要的肉鸡资源更少。笔者在python各个url请求库和golang中，最终敲定使用了golang实现肉鸡。golang做到了和原生c+epoll一样快的速度，但是代码实现容易多了。理论上我们对一台做过代理端性能瓶颈分析。线上日志比模拟日志更复杂，qps适度下降是必然的。Golang这个客户端达到预期目标。</p>
+<p>可扩展：在我们可能会随时增加模拟机器集群的肉鸡数量，或者更多的闲置代理服务器资源加入压测任务。所以系统在可用机器数据表随时加入新的机器。</p>
+<p><img src="http://res.cloudinary.com/lumanyu/image/upload/v1578283471/mini_arch_system/bc41cc7c73b9682f9b6ddd96101380f3_mxpsgm.jpg" alt=""></p>
+<p>图5 系统的动态可扩展</p>
+<p>可恢复：分布式系统不同于单机模式。不能避免可能有各种故障，有时候系统部分节点出错了，我们更倾向于不用这个节点，而不是继续使用未处理完成的结果。即非0即1，无中间状态。还有分布式系统网络传输延迟不可控。所以压测系统设计了一套容错机制：包括心跳检测失败，自动在数据表剔除肉鸡服务端。接口异常容错。超时过期未完成任务去除。crontab定时拉取退出进程等。</p>
+<p>简易搭建：使用ajs接口，和批处理安装脚本。自动化部署肉鸡和服务端。配置dns解析ip（日志服务器，任务池、回源率结果所在的数据库ip），tcp<br>time_wait状态的复用，千万别忘了还有一些系统限制放开（放开ulimit fd<br>limit，这里设置100000，永久设置需要编辑/etc/security/limits.conf）。如果肉鸡有依赖程序运行库需要同时下载。在肉鸡机器下载肉鸡客户端和配置、在服务端机器下载服务端和配置，下载定时拉起程序脚本，并添加到crontab定时执行。以上都用批处理脚本自动执行。</p>
+<p><strong>一些设计范式的思考</strong></p>
+<p><strong>Single-productor and Multi-consumer</strong></p>
+<p>在肉鸡客户端的设计中：读日志文件一行一条记录，添加到消息管道，然后多个执行worker从消息管道取url，执行模拟请求。消息管道传送的是一条待执行的日志url。IO消耗型程序指的是如果consumer执行访问日志并瞬间完成结果，但是productor需要对日志进行复杂的字符串处理（例如正则之类的），那么它下次取不到数据，就会被管道block住。另外一种是CPU消耗型程序，如果日志url已经预先处理好了，productor只是简单的copy数据给消息管道。而consumer访问url，经过不可预知的网络延迟。那么多个consumer（因为是包括网络访问时间，consumer个数设计超过cpu核数，比如2倍）同时访问，读端速度慢于写端数度。在对一个日志文件进行实验，我们发现处理18w条记录日志的时间是0.3s，而执行完这些url的访问任务则需要3分钟。那么很显然这是一个CPU消耗性进程。如果是IO消耗型的程序。Golang有种叫fan<br>out的消息模型。我们可以这样设计：多个读端去读取多个chan<br>list的chan，一个写端写一个chan。Fanout则将写端的chan，循环写到chan<br>list的chan中。</p>
+<p><strong>Map-reduce</strong></p>
+<p>我们有时会做一个地理位置一个运营商的机房日志分析。一个机房包含数台机器ip。合理的调度多个肉鸡客户端并行访问日志，可以更快速得到合并回源率数据。</p>
+<p>并行机制，经典的map-reduce，日志文件按机房机器ip纬度切片分发任务，启动N个肉鸡同时并行访问，等最后一台肉鸡完成任务时，归并各个肉鸡数据按成功请求数量、成功请求流量、失败请求数量、失败请求流量等方式做统计。同时用于和线上日志做校样。这里的mapper就是肉鸡，产生的数据表，我们按照关注的类型去提取就是reducer。</p>
+<p>简化的map-reducer（不基于分布式文件系统），map和reduce中间的数据传递用数据表实现。每个mapper产生的日志数据先放在本地，然后再上报给数据表。但是数据表大小的限制，我们只能上传头部访问url。所以如果用这个办法实现，数据是不完整的，或者不完全正确的数据。因为也许两台肉鸡合并的头部数据正好就包括了某肉鸡未上传的日志（该日志因为没有到达单机肉鸡访问量top的标准）。</p>
+<p>那么如何解决这个问题呢，根本原因在于汇总数据所在的文件系统是本地的，不是分布式的（hadoop的hdfs大概就是基于这种需求发明的把）。如果是状态码纬度，这种思路是没问题的，因为http状态码总量就那么少。那么如果是url纬度，比如说某机房给单肉鸡的单次任务在10分钟的url总数据量达到18万条。只看日志重复数&gt;100的肉鸡数据。这样误差最大值是100*肉鸡数，所以对于10台肉鸡的机房，只要是综合合并结果&gt;1000。都是可信任的。如果是域名纬度，少数头部客户流量占比大多数带宽。<br>这也就是所谓的hot-key，少数的hot-key占据了大多数比例的流量。所以域名纬度时，这个时候可以把关注点缩放在指定域名的url列表。如果本地上报给数据表的数据量太大，url也可以考虑进行短地址压缩。当然如果不想弯道超车的话，需要硬解决这个问题，那可能得需要hdfs这种分布式文件系统。</p>
+<p><strong>Stream-Processing</strong></p>
+<p>我们进行日志客户端系统，需要向日志服务器下载此次任务所需要的日志（一般是一个机器10分钟的访问日志）。首先本地日志会去任务服务器查询重放任务。接着去日志服务器下载。如果该模拟集群是在DC网络组建，那么下载一个10分钟（约150M左右的文件）日志几乎在1两秒内搞定，但是如果这个分布式系统是组建于OC网络，那么OC网络的肉鸡服务器要去DC（考虑机房可靠性，日志服务器架设在DC网络）下载，经过nat转化内网到外网，下载则需要10s左右。如果为了等待日志服务器下载完，也是一笔时间开销。</p>
+<p>在分布式系统中，所谓的stream-processing，和batch<br>processing不同的是，数据是无边界的。你不知道什么时候日志下载完。而batch<br>processing的前后流程关系，好比生产流水线的工序，前一道完成，后一道才开始，对于后一道是完全知道前一道的输出结果有多少。</p>
+<p>所谓的流式处理则需要在前一道部分输出结果到达时，启动后一道工序，前一道工序继续输出，后一道则需要做出处理事件响应。后一道需要频繁调度程序。</p>
+<p>消息系统（message<br>broker）：前一道的部分输出，输入给消息系统。消息系统检测到是完整的一条日志，则可以产生后一道工序的输入。这里我们会碰到一个问题。下载日志的速度（10s）会远远快于执行重放这些日志的速度（3min）。按照一个消息系统可能的动作是：无buffer则丢弃，按照队列缓存住，执行流控同步后一道工序和前一道工序的匹配速度。这里我们选择了按照队列缓存住这个方案。当然在一个严谨的分布式数据库设计，message<br>broker是一个能考率到数据丢失的节点。Broker会把完整数据发给后道工序，同时会把buffer数据缓存到硬盘备份，以防程序core<br>dump。如果对于慢速前道工序，可以进行综合方案配置，丢弃或者流控。这里消息broker不同于数据库，他的中间未处理数据是暂时存储，处理过的消息要清除存储。</p>
+<p><strong>总结</strong></p>
+<p>当然：现实中的生产线的分布式系统会远比这个复杂，但是本文实现的从0到1的迷你麻雀分布式系统有一定的实践意义。它不是一蹴而就的，不断地版本迭代。当然该系统也完成了作者的kpi-存储模型分析，在中途遇到问题时，进行的设计思考和改良，在此总结分享给大家。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://mariolu.xyz/2020/01/06/%E5%BE%AE%E5%9E%8B%E5%88%86%E5%B8%83%E5%BC%8F%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E8%8C%83%E4%BE%8B/" data-id="ck5chp3bc0001my02ah1hak26" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2020/01/13/%E6%83%8A%E7%BE%A4%E6%95%88%E5%BA%94/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          惊群效应
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2020/01/05/%E6%88%91%E6%98%AF%E6%80%8E%E4%B9%88%E4%B8%80%E6%AD%A5%E6%AD%A5%E7%94%A8go%E6%89%BE%E5%87%BA%E5%8E%8B%E6%B5%8B%E6%80%A7%E8%83%BD%E7%93%B6%E9%A2%88/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">我是怎么一步步用go找出压测性能瓶颈</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">一月 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">八月 2019</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2020/01/13/hello-world/">Hello World</a>
+          </li>
+        
+          <li>
+            <a href="/2020/01/13/%E5%A6%82%E4%BD%95%E9%80%9A%E8%BF%87%E5%91%BD%E4%BB%A4%E8%A1%8C%E8%AE%BF%E9%97%AEunix-socket%E6%96%87%E4%BB%B6/">如何通过命令行访问unix socket文件</a>
+          </li>
+        
+          <li>
+            <a href="/2020/01/13/%E6%83%8A%E7%BE%A4%E6%95%88%E5%BA%94/">惊群效应</a>
+          </li>
+        
+          <li>
+            <a href="/2020/01/06/%E5%BE%AE%E5%9E%8B%E5%88%86%E5%B8%83%E5%BC%8F%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E8%8C%83%E4%BE%8B/">微型分布式架构设计范例</a>
+          </li>
+        
+          <li>
+            <a href="/2020/01/05/%E6%88%91%E6%98%AF%E6%80%8E%E4%B9%88%E4%B8%80%E6%AD%A5%E6%AD%A5%E7%94%A8go%E6%89%BE%E5%87%BA%E5%8E%8B%E6%B5%8B%E6%80%A7%E8%83%BD%E7%93%B6%E9%A2%88/">我是怎么一步步用go找出压测性能瓶颈</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020 Mario Lu<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

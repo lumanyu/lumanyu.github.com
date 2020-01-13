@@ -5,17 +5,17 @@
   
 
   
-  <title>Hello World | Hexo</title>
+  <title>如何通过命令行访问unix socket文件 | Hexo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub. Quick">
+  <meta name="description" content="socket为什么不能用传统命令访问？ socket文件不能通过普通的文件读写命令操作（比如说echo “xxx” &gt;socket.file）它。因为它是在网络上面工作的。只能通过socket读写函数去操作它。 socat和ncat命令 其实通过的linux命令socat和ncat可以去操作socket。 其中-U指定了该文件是Unix域socket文件类型，ncat实现了类似于cat命令的">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Hello World">
-<meta property="og:url" content="http://mariolu.xyz/2020/01/13/hello-world/index.html">
+<meta property="og:title" content="如何通过命令行访问unix socket文件">
+<meta property="og:url" content="http://mariolu.xyz/2020/01/13/%E5%A6%82%E4%BD%95%E9%80%9A%E8%BF%87%E5%91%BD%E4%BB%A4%E8%A1%8C%E8%AE%BF%E9%97%AEunix-socket%E6%96%87%E4%BB%B6/index.html">
 <meta property="og:site_name" content="Hexo">
-<meta property="og:description" content="Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub. Quick">
+<meta property="og:description" content="socket为什么不能用传统命令访问？ socket文件不能通过普通的文件读写命令操作（比如说echo “xxx” &gt;socket.file）它。因为它是在网络上面工作的。只能通过socket读写函数去操作它。 socat和ncat命令 其实通过的linux命令socat和ncat可以去操作socket。 其中-U指定了该文件是Unix域socket文件类型，ncat实现了类似于cat命令的">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2020-01-13T12:53:15.611Z">
-<meta property="article:modified_time" content="2020-01-13T12:53:15.611Z">
+<meta property="article:published_time" content="2020-01-13T13:29:36.000Z">
+<meta property="article:modified_time" content="2020-01-13T13:31:54.855Z">
 <meta property="article:author" content="Mario Lu">
 <meta property="article:tag" content="Full Stack">
 <meta name="twitter:card" content="summary">
@@ -67,10 +67,10 @@
   </div>
 </header>
       <div class="outer">
-        <section id="main"><article id="post-hello-world" class="article article-type-post" itemscope itemprop="blogPost">
+        <section id="main"><article id="post-如何通过命令行访问unix-socket文件" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
-    <a href="/2020/01/13/hello-world/" class="article-date">
-  <time datetime="2020-01-13T12:53:15.611Z" itemprop="datePublished">2020-01-13</time>
+    <a href="/2020/01/13/%E5%A6%82%E4%BD%95%E9%80%9A%E8%BF%87%E5%91%BD%E4%BB%A4%E8%A1%8C%E8%AE%BF%E9%97%AEunix-socket%E6%96%87%E4%BB%B6/" class="article-date">
+  <time datetime="2020-01-13T13:29:36.000Z" itemprop="datePublished">2020-01-13</time>
 </a>
     
   </div>
@@ -81,7 +81,7 @@
         
   
     <h1 class="article-title" itemprop="name">
-      Hello World
+      如何通过命令行访问unix socket文件
     </h1>
   
 
@@ -89,24 +89,25 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <p>Welcome to <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html" target="_blank" rel="noopener">Deployment</a></p>
+        <p><strong>socket为什么不能用传统命令访问？</strong></p>
+<p>socket文件不能通过普通的文件读写命令操作（比如说echo “xxx” &gt;<br>socket.file）它。因为它是在网络上面工作的。只能通过socket读写函数去操作它。</p>
+<p><strong>socat和ncat命令</strong></p>
+<p>其实通过的linux命令socat和ncat可以去操作socket。</p>
+<p>其中-U指定了该文件是Unix域socket文件类型，ncat实现了类似于cat命令的访问unix<br>socket。</p>
+<p>ncat -U /tmp/tbsocket1</p>
+<p>ncat也可以通过映射socket文件到监听的端口上。那么通过curl可以发送请求到该监听端口，实现写操作。</p>
+<p># 映射tcp的8080流量到unix socket</p>
+<p>ncat -vlk 8080 -c ‘ncat -U /tmp/tbsocket1’</p>
+<p># 通过curl发起http请求访问</p>
+<p>curl <a href="http://localhost:8080" target="_blank" rel="noopener">http://localhost:8080</a></p>
+<p>也可以使用功能更强大的socat来实现。</p>
+<p># 映射8080/tcp 到unix socket</p>
+<p>socat -d -d TCP-LISTEN:8080,fork UNIX:/tmp/tbsocket1</p>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://mariolu.xyz/2020/01/13/hello-world/" data-id="ck5cgafua00004o0279umcjs7" class="article-share-link">Share</a>
+      <a data-url="http://mariolu.xyz/2020/01/13/%E5%A6%82%E4%BD%95%E9%80%9A%E8%BF%87%E5%91%BD%E4%BB%A4%E8%A1%8C%E8%AE%BF%E9%97%AEunix-socket%E6%96%87%E4%BB%B6/" data-id="ck5chlax500004o02fki203hd" class="article-share-link">Share</a>
       
       
     </footer>
@@ -115,15 +116,11 @@
     
 <nav id="article-nav">
   
-    <a href="/2020/01/13/%E6%83%8A%E7%BE%A4%E6%95%88%E5%BA%94/" id="article-nav-newer" class="article-nav-link-wrap">
-      <strong class="article-nav-caption">Newer</strong>
-      <div class="article-nav-title">
-        
-          惊群效应
-        
-      </div>
-    </a>
   
+    <a href="/2020/01/13/%E6%83%8A%E7%BE%A4%E6%95%88%E5%BA%94/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">惊群效应</div>
+    </a>
   
 </nav>
 

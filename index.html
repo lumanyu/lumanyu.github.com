@@ -67,6 +67,56 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-如何通过命令行访问unix-socket文件" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/01/13/%E5%A6%82%E4%BD%95%E9%80%9A%E8%BF%87%E5%91%BD%E4%BB%A4%E8%A1%8C%E8%AE%BF%E9%97%AEunix-socket%E6%96%87%E4%BB%B6/" class="article-date">
+  <time datetime="2020-01-13T13:29:36.000Z" itemprop="datePublished">2020-01-13</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/01/13/%E5%A6%82%E4%BD%95%E9%80%9A%E8%BF%87%E5%91%BD%E4%BB%A4%E8%A1%8C%E8%AE%BF%E9%97%AEunix-socket%E6%96%87%E4%BB%B6/">如何通过命令行访问unix socket文件</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p><strong>socket为什么不能用传统命令访问？</strong></p>
+<p>socket文件不能通过普通的文件读写命令操作（比如说echo “xxx” &gt;<br>socket.file）它。因为它是在网络上面工作的。只能通过socket读写函数去操作它。</p>
+<p><strong>socat和ncat命令</strong></p>
+<p>其实通过的linux命令socat和ncat可以去操作socket。</p>
+<p>其中-U指定了该文件是Unix域socket文件类型，ncat实现了类似于cat命令的访问unix<br>socket。</p>
+<p>ncat -U /tmp/tbsocket1</p>
+<p>ncat也可以通过映射socket文件到监听的端口上。那么通过curl可以发送请求到该监听端口，实现写操作。</p>
+<p># 映射tcp的8080流量到unix socket</p>
+<p>ncat -vlk 8080 -c ‘ncat -U /tmp/tbsocket1’</p>
+<p># 通过curl发起http请求访问</p>
+<p>curl <a href="http://localhost:8080" target="_blank" rel="noopener">http://localhost:8080</a></p>
+<p>也可以使用功能更强大的socat来实现。</p>
+<p># 映射8080/tcp 到unix socket</p>
+<p>socat -d -d TCP-LISTEN:8080,fork UNIX:/tmp/tbsocket1</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://mariolu.xyz/2020/01/13/%E5%A6%82%E4%BD%95%E9%80%9A%E8%BF%87%E5%91%BD%E4%BB%A4%E8%A1%8C%E8%AE%BF%E9%97%AEunix-socket%E6%96%87%E4%BB%B6/" data-id="ck5chlax500004o02fki203hd" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-惊群效应" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     <a href="/2020/01/13/%E6%83%8A%E7%BE%A4%E6%95%88%E5%BA%94/" class="article-date">
@@ -274,6 +324,10 @@
     <h3 class="widget-title">最新文章</h3>
     <div class="widget">
       <ul>
+        
+          <li>
+            <a href="/2020/01/13/%E5%A6%82%E4%BD%95%E9%80%9A%E8%BF%87%E5%91%BD%E4%BB%A4%E8%A1%8C%E8%AE%BF%E9%97%AEunix-socket%E6%96%87%E4%BB%B6/">如何通过命令行访问unix socket文件</a>
+          </li>
         
           <li>
             <a href="/2020/01/13/%E6%83%8A%E7%BE%A4%E6%95%88%E5%BA%94/">惊群效应</a>
